@@ -41,7 +41,7 @@ plt.style.use('fivethirtyeight')
 # ??
 os.chdir('.')
 
-train_path = './90.txt'
+train_path = './090.txt'
 test_path = './test_no_label.txt'
 train=pd.read_table(train_path,delimiter=' ')
 test=pd.read_table(test_path,delimiter=' ')
@@ -454,7 +454,7 @@ plt.xlabel('num_predict_category_property')
 plt.ylabel('average is_trade')
 
 
-train_path = './90.txt'
+train_path = './090.txt'
 test_path = './test_no_label.txt'
 train=pd.read_table(train_path,delimiter=' ')
 test=pd.read_table(test_path,delimiter=' ')

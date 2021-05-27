@@ -1,0 +1,793 @@
+# Pandas??????????????????????????????????????????
+import pandas as pd
+# ????
+import pickle
+# ????
+from sklearn import preprocessing
+
+import warnings
+warnings.filterwarnings("ignore")
+
+data = pd.read_csv('./mergeData.csv', sep=' ')
+print(data.shape)
+print(data['instance_id'].nunique())
+
+# ????????
+
+# item_category_list???2-3?;???id???????????2???
+item_category_list_2 = pd.DataFrame([int(i.split(';')[1]) for i in data.item_category_list])
+
+data['item_category_list_2'] = item_category_list_2
+data.head()
+
+'''
+??????????
+'''
+
+# ???????????????????????????
+user_query_day = data.groupby(['user_id', 'day']).size().reset_index().rename(columns={0: 'user_query_day'})
+data = pd.merge(data, user_query_day, 'left', on=['user_id', 'day'])
+user_query_day_hour = data.groupby(['user_id', 'day', 'hour']).size().reset_index().rename(
+columns={0: 'user_query_day_hour'})
+data = pd.merge(data, user_query_day_hour, 'left', on=['user_id', 'day', 'hour'])
+
+# ??????????????
+item_id_frequence = data.groupby([ 'item_id']).size().reset_index().rename(columns={0: 'item_id_frequence'})
+item_id_frequence=item_id_frequence/(data.shape[0])
+data = pd.merge(data, item_id_frequence, 'left', on=['item_id'])
+
+# ????????????????????
+num_user_minute = data.groupby(['user_id','day','minute']).size().reset_index().rename(columns = {0:'num_user_day_minute'})
+data = pd.merge(data, num_user_minute,'left',on = ['user_id','day','minute'])
+
+# ???????????????????
+day_user_item_id = data.groupby(['day', 'user_id', 'item_id']).size().reset_index().rename(
+columns={0: 'day_user_item_id'})
+data = pd.merge(data, day_user_item_id, 'left', on=['day', 'user_id', 'item_id'])
+
+# ?????????????????????????
+day_hour_minute_user_item_id = data.groupby(
+['day', 'hour', 'minute', 'user_id', 'item_id']).size().reset_index().rename(
+columns={0: 'day_hour_minute_user_item_id'})
+data = pd.merge(data, day_hour_minute_user_item_id, 'left', on=['day', 'hour', 'minute', 'user_id', 'item_id'])
+
+# ??????????????????????
+number_day_hour_item_id = data.groupby(['day', 'hour', 'item_id']).size().reset_index().rename(
+columns={0: 'number_day_hour_item_id'})
+data = pd.merge(data, number_day_hour_item_id, 'left', on=['day', 'hour', 'item_id'])
+
+# ??????????????????
+item_user_id = data.groupby(['item_id', 'user_id']).size().reset_index().rename(columns={0: 'item_user_id'})
+data = pd.merge(data, item_user_id, 'left', on=['item_id', 'user_id'])
+
+data.head()
+
+'''
+?????????
+'''
+
+# ?????????????????????
+item_category_city_id = data.groupby(['item_category_list', 'item_city_id']).size().reset_index().rename(
+columns={0: 'item_category_city_id'})
+data = pd.merge(data, item_category_city_id, 'left', on=['item_category_list', 'item_city_id'])
+
+# ??????????????????????????????????
+item_category_sales_level = data.groupby(
+['item_category_list', 'item_sales_level']).size().reset_index().rename(
+columns={0: 'item_category_sales_level'})
+data = pd.merge(data, item_category_sales_level, 'left', on=['item_category_list', 'item_sales_level'])
+
+# ??????????????????????
+item_category_price_level = data.groupby(
+['item_category_list', 'item_price_level']).size().reset_index().rename(
+columns={0: 'item_category_price_level'})
+data = pd.merge(data, item_category_price_level, 'left', on=['item_category_list', 'item_price_level'])
+
+# ????????????????????
+item_ID_sales_level = data.groupby(['item_id', 'item_sales_level']).size().reset_index().rename(
+columns={0: 'item_ID_sales_level'})
+data = pd.merge(data, item_ID_sales_level, 'left', on=['item_id', 'item_sales_level'])
+
+# ????????????????????
+item_ID_collected_level = data.groupby(['item_id', 'item_collected_level']).size().reset_index().rename(
+columns={0: 'item_ID_collected_level'})
+data = pd.merge(data, item_ID_collected_level, 'left', on=['item_id', 'item_collected_level'])
+
+data.head()
+
+'''
+??????????
+'''
+
+# ??????????
+number_user_id = data.groupby(['user_id']).size().reset_index().rename(columns={0: 'number_user_id'})
+data = pd.merge(data, number_user_id, 'left', on=['user_id'])
+
+# ??????????
+number_shop_id = data.groupby(['shop_id']).size().reset_index().rename(columns={0: 'number_shop_id'})
+data = pd.merge(data, number_shop_id, 'left', on=['shop_id'])
+
+lbl = preprocessing.LabelEncoder()
+
+# ???????????????predict_category_property0..4?????????0????????????
+for i in range(5):
+    data['predict_category_property' + str(i)] = lbl.fit_transform(data['predict_category_property'].map(
+        lambda x: str(str(x).split(';')[i]) if len(str(x).split(';')) > i else ''))
+
+# ????????????item_category_list1..2?????????0????????????
+for i in range(1, 3):
+    data['item_category_list' + str(i)] = lbl.fit_transform(data['item_category_list'].map(
+        lambda x: str(str(x).split(';')[i]) if len(str(x).split(';')) > i else ''))
+
+# ????????????item_property_list0..9?????????0????????????
+for i in range(10):
+    data['item_property_list' + str(i)] = lbl.fit_transform(data['item_property_list'].map(
+        lambda x: str(str(x).split(';')[i]) if len(str(x).split(';')) > i else ''))
+
+# data['context_page0'] = data['context_page_id'].apply(
+#   lambda x: 1 if x == 4001 | x == 4002 | x == 4003 | x == 4004 | x == 4007  else 2)
+
+data.head()
+
+
+'''
+?????????????????
+'''
+
+# ?????0??
+data['gender0'] = data['user_gender_id'].apply(lambda x: x + 1 if x == -1 else x)
+
+# ?????1003??????1000-1007
+# print(data['user_age_level'].value_counts())
+data['age0'] = data['user_age_level'].apply(lambda x: 1003 if x == -1  else x)
+
+# ?????2005??????2002-2005
+# print(data['user_occupation_id'].value_counts())
+data['occupation0'] = data['user_occupation_id'].apply(lambda x: 2005 if x == -1  else x)
+
+# ?????3006??????3000-3010
+# print(data['user_star_level'].value_counts())
+data['star0'] = data['user_star_level'].apply(lambda x: 3006 if x == -1 else x)
+
+'''
+?????????
+'''
+
+# ??????????????????
+number_item_user_id = data.groupby(['item_id', 'user_id']).size().reset_index().rename(
+    columns={0: 'number_item_user_id'})
+data = pd.merge(data, number_item_user_id, 'left', on=['item_id', 'user_id'])
+
+# ???????????????????????
+number_item_brand_positive_rate = data.groupby(
+    ['item_brand_id', 'shop_review_positive_rate']).size().reset_index().rename(
+    columns={0: 'number_item_brand_positive_rate'})
+data = pd.merge(data, number_item_brand_positive_rate, 'left',
+                on=['item_brand_id', 'shop_review_positive_rate'])
+
+# ???????????????????????
+number_item_brand_shop_star = data.groupby(['item_brand_id', 'shop_star_level']).size().reset_index().rename(
+    columns={0: 'number_item_brand_shop_star'})
+data = pd.merge(data, number_item_brand_shop_star, 'left', on=['item_brand_id', 'shop_star_level'])
+
+# ???????????????????????????
+number_item_city_pv_level = data.groupby(['item_city_id', 'item_pv_level']).size().reset_index().rename(
+    columns={0: 'number_item_city_pv_level'})
+data = pd.merge(data, number_item_city_pv_level, 'left', on=['item_city_id', 'item_pv_level'])
+
+# ??????????????????????
+number_item_city_user_id = data.groupby(['item_city_id', 'user_id']).size().reset_index().rename(
+    columns={0: 'number_item_city_user_id'})
+data = pd.merge(data, number_item_city_user_id, 'left', on=['item_city_id', 'user_id'])
+
+# ????????????????????????????
+number_item_price_sales_level = data.groupby(
+    ['item_price_level', 'item_sales_level']).size().reset_index().rename(
+    columns={0: 'number_item_price_sales_level'})
+data = pd.merge(data, number_item_price_sales_level, 'left', on=['item_price_level', 'item_sales_level'])
+
+# ??????????????????????????????
+number_predict_category_sales_level = data.groupby(
+    ['predict_category_property', 'item_sales_level']).size().reset_index().rename(
+    columns={0: 'number_predict_category_sales_level'})
+data = pd.merge(data, number_predict_category_sales_level, 'left',
+                on=['predict_category_property', 'item_sales_level'])
+
+# ????????????????????????????
+number_collected_shop_id = data.groupby(['item_collected_level', 'shop_id']).size().reset_index().rename(
+    columns={0: 'number_collected_shop_id'})
+data = pd.merge(data, number_collected_shop_id, 'left', on=['item_collected_level', 'shop_id'])
+
+# ????????????????????????????
+for i in range(3):
+    data['category_%d' % (i)] = data['item_category_list'].apply(
+        lambda x: x.split(";")[i] if len(x.split(";")) > i else " ")
+
+# ????????????????????????????
+for i in range(3):
+    data['property_%d' % (i)] = data['item_property_list'].apply(
+        lambda x: x.split(";")[i] if len(x.split(";")) > i else " ")
+
+# ????????????????????????????????????
+for i in range(3):
+    data['predict_category_%d' % (i)] = data['predict_category_property'].apply(
+        lambda x: str(x.split(";")[i]).split(":")[0] if len(x.split(";")) > i else " ")
+
+# ?????????????????????????????????????????
+# nunique???????
+for i in ['item_id', 'shop_id', 'day', 'context_page_id']:
+    temp = data.groupby('user_id').nunique()[i].reset_index().rename(columns={i: 'number_' + i + '_query_user'})
+    data = pd.merge(data, temp, 'left', on='user_id')
+
+print(data.shape)
+print(data['instance_id'].nunique())
+
+data.head()
+
+# ????
+basic_data = data[['instance_id']]
+ad_information = data[
+        ['item_id', 'item_category_list', 'item_brand_id', 'item_city_id', 'item_price_level','item_property_list',
+         'item_sales_level', 'item_collected_level', 'item_pv_level']]
+user_information = data[
+        ['user_id', 'user_age_level', 'user_star_level', 'user_occupation_id','user_gender_id']]
+text_information = data[['context_id', 'context_timestamp', 'context_page_id', 'predict_category_property']]
+shop_information = data[
+        ['shop_id', 'shop_review_num_level', 'shop_review_positive_rate', 'shop_star_level', 'shop_score_service',
+         'shop_score_delivery', 'shop_score_description']]
+external_information = data[
+        ['time', 'day', 'hour', 'minute', 'user_query_day', 'user_query_day_hour', 'day_user_item_id', \
+         'day_hour_minute_user_item_id',
+         'number_day_hour_item_id', 'number_user_id', 'number_shop_id', \
+         'item_category_list_2', 'item_user_id', 'item_category_city_id', 'item_category_sales_level', \
+         'item_ID_sales_level', 'item_ID_collected_level', 'item_category_price_level', \
+         'predict_category_property0', 'predict_category_property1', 'predict_category_property2', \
+         'predict_category_property3', 'predict_category_property4', 'item_category_list1', \
+         'item_category_list2', 'item_property_list0', 'item_property_list1', 'item_property_list2', \
+         'item_property_list3', 'item_property_list4', 'item_property_list5', 'item_property_list6', \
+         'item_property_list7', 'item_property_list8', 'item_property_list9', 'gender0', 'age0', \
+         'occupation0', 'star0', 'number_item_brand_positive_rate', 'number_item_brand_shop_star', \
+         'number_item_city_pv_level', 'number_item_city_user_id', 'number_item_price_sales_level', \
+         'number_predict_category_sales_level', 'number_collected_shop_id'# ,'shop_score_delivery_round','number_item_id_query_user' ,'number_shop_id_query_user','number_day_query_user' ,'number_context_page_id_query_user'
+         ]]
+
+# ???????????
+result = pd.concat(
+    [basic_data, ad_information, user_information, text_information, shop_information, external_information],
+    axis=1)
+
+print(result.shape)
+print(result['instance_id'].nunique())
+
+result.head()
+
+
+'''
+?????????????????
+'''
+
+# ItemCVR = concatDayCVR()
+# result = pd.merge(result, ItemCVR, on=['instance_id','item_id','user_id'], how = 'left')
+
+'''
+I saved Bayes_smooth result for save time, you can run itemIDBayesSmooth.py, userIDBayesSmooth.py etc to get the result. 
+'''
+# Item_Bayes = np.load('../../datasets/Item_Bayes.npy')
+# # Brand_Bayes=np.load('../../datasets/Brand_id_Bayes.npy')
+# Shop_Bayes = np.load('../../datasets/Shop_Bayes.npy')
+# # Hour_Bayes = np.load('../../datasets/Item_pv_levelBayesPH.npy')
+# User_Bayes = np.load('../../datasets/UserBayesPH.npy')
+# result['Item_Bayes'] = Item_Bayes
+# result['Brand_Bayes'] = Brand_Bayes
+# result['Shop_Bayes'] = Shop_Bayes
+# result['User_Bayes'] = concatUserDayCVR()
+# result['Hour_Bayes'] = Hour_Bayes
+# result['itemCVR'] = concatItemDayCVR()
+
+# result = zuhe(result)
+# result = item(result)
+# result = user(result)
+# result = user_item(result)
+# result = user_shop(result)
+# result = shop_item(result)
+# result = self.zuhe_feature(result)
+
+
+# ?????????
+# 1??????????????????????????
+# 2???????????????????
+
+# ?????????????????????????????????????????????
+# ????????????????????
+for d in range(18, 26):
+    # ?????????
+    df1 = result[result['day'] == d]
+
+    # df.rank(method='min')??????????dataframe??????????????
+    # ????1???
+    # ???????groupby?????????????????
+    rnColumn_user = df1.groupby('user_id').rank(method='min')
+    rnColumn_user_item = df1.groupby(['user_id', 'item_id']).rank(method='min')
+    rnColumn_user_shop = df1.groupby(['user_id', 'shop_id']).rank(method='min')
+
+    # ?????????????????????????????
+    df1['user_id_order'] = rnColumn_user['context_timestamp']
+    df1['user_item_id_order'] = rnColumn_user_item['context_timestamp']
+    df1['user_shop_id_order'] = rnColumn_user_shop['context_timestamp']
+
+    # ?????????
+    df2 = df1[['user_id', 'instance_id', 'item_id', 'user_id_order', 'user_item_id_order', 'user_shop_id_order']]
+    if d == 18:
+        Df = df2
+    else:
+        Df = pd.concat([Df, df2])
+
+Df.drop_duplicates(inplace=True)
+
+result = pd.merge(result, Df, on=['user_id', 'instance_id', 'item_id'], how='left')
+
+print(result.shape)
+print(result['instance_id'].nunique())
+df1 = result.groupby(["instance_id"]).size()
+col = df1[df1 > 1].reset_index()[["instance_id"]]
+ttt = pd.merge(col, result, on=["instance_id"])
+print(ttt)
+
+# ???????
+filename = './serialize_constant'
+
+with open(filename, 'rb') as f:
+    serialize_constant = pickle.load(f)
+    trainlabel = serialize_constant['trainlabel']
+result['is_trade'] = trainlabel
+
+print(result.shape)
+print(result['instance_id'].nunique())
+
+result.head()
+
+# ??????????n????????????n-1?????????
+for d in range(18, 26):
+    df1 = result[result['day'] == d - 1]  # ???
+    df2 = result[result['day'] == d]  # ??
+
+    df_cvr = result[(result['day'] == d - 1) & (result['is_trade'] == 1)]  # ?????????
+
+    # ????????????????????{column -> {index -> value}}???
+    user_item_cnt = df1.groupby(['item_id', 'user_id']).count()['instance_id'].to_dict()
+    # item_trade_cnt = df1.groupby(['item_id','shop_id','is_trade']).count()['instance_id'].to_dict()
+    user_cnt = df1.groupby(by='user_id').count()['instance_id'].to_dict()
+    item_cnt = df1.groupby(by='item_id').count()['instance_id'].to_dict()
+    shop_cnt = df1.groupby(by='shop_id').count()['instance_id'].to_dict()
+    item_cvr_cnt = df_cvr.groupby(by='item_id').count()['instance_id'].to_dict()
+    user_cvr_cnt = df_cvr.groupby(by='user_id').count()['instance_id'].to_dict()
+
+    # ????????n?????????n-1??????
+    df2['item_cvr_cnt1'] = df2['item_id'].apply(lambda x: item_cvr_cnt.get(x, 0))
+    df2['user_cvr_cnt1'] = df2['user_id'].apply(lambda x: user_cvr_cnt.get(x, 0))
+    df2['user_cnt1'] = df2['user_id'].apply(lambda x: user_cnt.get(x, 0))
+    df2['item_cnt1'] = df2['item_id'].apply(lambda x: item_cnt.get(x, 0))
+    df2['shop_cnt1'] = df2['shop_id'].apply(lambda x: shop_cnt.get(x, 0))
+    # tuple()????axis=1??????
+    df2['user_item_cnt1'] = df2[['item_id', 'user_id']].apply(lambda x: user_item_cnt.get(tuple(x), 0), axis=1)
+
+    # ?????????
+    df2 = df2[['user_item_cnt1', 'user_cnt1', \
+               # 'item_cnt1', 'shop_cnt1',\
+               'item_cvr_cnt1', 'user_cvr_cnt1', \
+               'item_id', 'user_id', 'instance_id']]
+    if d == 18:
+        Df2 = df2
+    else:
+        Df2 = pd.concat([df2, Df2])
+
+Df2.drop_duplicates(inplace=True)
+
+result = pd.merge(result, Df2, on=['instance_id', 'item_id', 'user_id'], how='left')
+
+print(result.shape)
+print(result['instance_id'].nunique())
+
+result.head()
+
+
+# ??????????n????????????0..n-1?????????
+for d in range(18, 26):
+    df1 = result[result['day'] < d] # ?????
+    df2 = result[result['day'] == d] # ??
+
+    df_cvr = result[(result['day'] < d) & (result['is_trade'] == 1)] # ???????????
+
+    # ????????????????????{column -> {index -> value}}???
+    user_item_cnt = df1.groupby(['item_id', 'user_id']).count()['instance_id'].to_dict()
+    user_cnt = df1.groupby(by='user_id').count()['instance_id'].to_dict()
+    item_cvr_cnt = df_cvr.groupby(by='item_id').count()['instance_id'].to_dict()
+    user_cvr_cnt = df_cvr.groupby(by='user_id').count()['instance_id'].to_dict()
+
+    # ????????n?????????0..n-1??????
+    df2['item_cvr_cntx'] = df2['item_id'].apply(lambda x: item_cvr_cnt.get(x, 0))
+    df2['user_cvr_cntx'] = df2['user_id'].apply(lambda x: user_cvr_cnt.get(x, 0))
+    df2['user_item_cntx'] = df2[['item_id', 'user_id']].apply(lambda x: user_item_cnt.get(tuple(x), 0), axis=1) # tuple()????axis=1??????
+    df2['user_cntx'] = df2['user_id'].apply(lambda x: user_cnt.get(x, 0))
+
+    # ?????????
+    df2 = df2[['user_item_cntx', 'user_cntx',
+       'item_cvr_cntx', 'user_cvr_cntx', \
+       'item_id', 'user_id', 'instance_id']]
+
+    if d == 18:
+        Df2 = df2
+    else:
+        Df2 = pd.concat([df2, Df2])
+
+Df2.drop_duplicates(inplace=True)
+
+result = pd.merge(result, Df2, on=['instance_id', 'item_id', 'user_id'], how='left')
+
+print(result.shape)
+print(result['instance_id'].nunique())
+
+result.head()
+
+# ????????????
+#
+# # ??????????n????????????n-2..n-1?????????
+# for d in range(18, 26):
+#     #print("%d: \n" % d)
+#     df1 = result[(result['day'] >= d - 2) & (result['day'] < d)] # n-2?n-1?
+#     df2 = result[result['day'] == d] # ??
+
+#     # ????????????????????{column -> {index -> value}}???
+#     user_cnt = df1.groupby(by='user_id').count()['instance_id'].to_dict()
+#     item_cnt = df1.groupby(by='item_id').count()['instance_id'].to_dict()
+#     shop_cnt = df1.groupby(by='shop_id').count()['instance_id'].to_dict()
+#     user_item_cnt = df1.groupby(['item_id', 'user_id']).count()['instance_id'].to_dict()
+#     #print("1\n")
+
+#     # ????????n?????????0..n-1??????
+#     df2['user_item_cnt2'] = df2[['item_id', 'user_id']].apply(lambda x: user_item_cnt.get(tuple(x), 0), axis=1)
+#     df2['user_cnt2'] = df2['user_id'].apply(lambda x: user_cnt.get(x, 0))
+#     df2['item_cnt2'] = df2['item_id'].apply(lambda x: item_cnt.get(x, 0))
+#     df2['shop_cnt2'] = df2['shop_id'].apply(lambda x: shop_cnt.get(x, 0))
+#     #print("2\n")
+
+#     # ?????????
+#     df2 = df2[['user_item_cnt2', 'user_cnt2', 'item_cnt2', 'shop_cnt2', \
+#        'item_id', 'user_id', 'instance_id']]
+
+#     if d == 18:
+#         Df2 = df2
+#     else:
+#         Df2 = pd.concat([df2, Df2])
+#     #print("3\n")
+
+# # result.to_csv('../../produce/result.csv')
+# # Df2.to_csv('../../produce/Df2.csv')
+# result = pd.merge(result, Df2, on=['instance_id', 'item_id', 'user_id'], how='left')
+
+
+# ??????????????
+
+# import pandas as pd
+# result = pd.read_csv('../../produce/result.csv', sep=',')
+# Df2 = pd.read_csv('../../produce/Df2.csv', sep=',')
+# def merge_size(left_frame, right_frame, group_by, how='left'):
+#     left_groups = left_frame.groupby(group_by).size()
+#     right_groups = right_frame.groupby(group_by).size()
+#     left_keys = set(left_groups.index)
+#     right_keys = set(right_groups.index)
+#     intersection = right_keys & left_keys
+#     left_diff = left_keys - intersection
+#     right_diff = right_keys - intersection
+
+#     left_nan = len(left_frame[left_frame[group_by] != left_frame[group_by]])
+#     right_nan = len(right_frame[right_frame[group_by] != right_frame[group_by]])
+#     left_nan = 1 if left_nan == 0 and right_nan != 0 else left_nan
+#     right_nan = 1 if right_nan == 0 and left_nan != 0 else right_nan
+
+#     sizes = [(left_groups[group_name] * right_groups[group_name]) for group_name in intersection]
+#     sizes += [left_nan * right_nan]
+
+#     left_size = [left_groups[group_name] for group_name in left_diff]
+#     right_size = [right_groups[group_name] for group_name in right_diff]
+#     if how == 'inner':
+#         return sum(sizes)
+#     elif how == 'left':
+#         return sum(sizes + left_size)
+#     elif how == 'right':
+#         return sum(sizes + right_size)
+#     return sum(sizes + left_size + right_size)
+# group_by = ['instance_id', 'item_id', 'user_id']
+# print(min([merge_size(result, Df2, group_by, how='left') for label in group_by]))
+# # result = pd.merge(result, Df2, on=['instance_id', 'item_id', 'user_id'], how='left')
+
+'''
+?????????????
+'''
+
+# # ?????????????????????????
+
+# train_origin = result
+# train1 = train_origin[['context_timestamp', 'user_id', 'instance_id', 'item_id']]
+
+# # ?????????????
+# train1 = train1.sort_values(['user_id', 'item_id', 'context_timestamp'], ascending=[1, 1, 1])
+
+# # ????????????????????????
+# rnColumn = train1.groupby(['user_id', 'item_id']).rank(method='min')
+# train1['rnnn'] = rnColumn['context_timestamp']
+# # ??-1??????????????????????
+# train1['rnnn_1'] = rnColumn['context_timestamp'] - 1
+
+# # train2?train1????????????how=?left?????????????
+# # left_on?right_on????????????????
+# # ???print(train2)??train2?????????
+# # ??user_id?item_id???????????????rnnn_1?rnnn???????
+# # ????user_id?item_id????????????????_x?_y??
+# # train2????????????????????2???????????????????????????NaN
+# train2 = train1.merge(train1, how='left', left_on=['user_id', 'item_id', 'rnnn_1'],
+#       right_on=['user_id', 'item_id', 'rnnn'])
+
+# print('??',datetime.datetime.now().strftime("%H:%M:%S"))
+
+# ????????????????????
+# train2['time_redc_user_item'] = train2['context_timestamp_x'] - train2['context_timestamp_y']
+
+# # ?-1??NaN??????int64
+# train2 = train2.fillna(-1).astype('int64')
+
+# # ?????
+# train2 = train2.rename(columns={'instance_id_x': 'instance_id'})
+# train2 = train2.rename(columns={'context_timestamp_x': 'context_timestamp'})
+
+# # ?????
+# train2 = train2.drop([#'rnnn_x','rnnn_y','rnnn_1_x','rnnn_1_y',
+#     'context_timestamp_y', 'instance_id_y'], axis=1)
+
+# result = pd.merge(train_origin, train2, on=['instance_id', 'item_id', 'user_id', 'context_timestamp'], how='left')
+# print('??',datetime.datetime.now().strftime("%H:%M:%S"))
+
+
+'''
+?????????????
+'''
+
+# # ????????????????????????????????
+
+# # ??????????????????????
+# train_origin = result
+# train1 = train_origin[['context_timestamp', 'user_id', 'instance_id', 'shop_id', 'item_id']]
+
+# # ?????????????
+# train1 = train1.sort_values(['user_id', 'shop_id', 'context_timestamp'], ascending=[1, 1, 1])
+
+# # ????????????????????
+# rnColumn = train1.groupby(['user_id', 'shop_id']).rank(method='min')
+# train1['rnn'] = rnColumn['context_timestamp']
+# # ??-1??????????????????
+# train1['rnn_1'] = rnColumn['context_timestamp'] - 1
+
+# # train2?train1????????????how=?left?????????????
+# # left_on?right_on????????????????
+# # ???print(train2)??train2?????????
+# # ??user_id?shop_id???????????????rnn_1?rnn???????
+# # ????user_id?shop_id????????????????_x?_y??
+# # train2??????????????????2???????????????????????????NaN
+# train2 = train1.merge(train1, how='left', left_on=['user_id', 'shop_id', 'rnn_1'],
+#       right_on=['user_id', 'shop_id', 'rnn'])
+
+# print('??',datetime.datetime.now().strftime("%H:%M:%S"))
+
+# ????????????????
+# train2['time_redc_user_shop'] = train2['context_timestamp_x'] - train2['context_timestamp_y']
+
+# # ?-1??NaN??????int64
+# train2 = train2.fillna(-1).astype('int64')
+
+# # ?????
+# train2 = train2.rename(columns={'instance_id_x': 'instance_id'})
+# train2 = train2.rename(columns={'item_id_x': 'item_id'})
+# train2 = train2.rename(columns={'shop_id_x': 'shop_id'})
+# train2 = train2.rename(columns={'context_timestamp_x': 'context_timestamp'})
+
+# # ?????
+# train2 = train2.drop([#'rnn_x','rnn_y','rnn_1_x','rnn_1_y',
+#     'context_timestamp_y', 'instance_id_y'], axis=1)
+
+# # ??
+# result = pd.merge(train_origin, train2, on=['instance_id', 'item_id', 'user_id', 'context_timestamp'], how='left')
+# print('??',datetime.datetime.now().strftime("%H:%M:%S"))
+
+
+'''
+?????????????
+'''
+
+# # ???????
+# # 1??????????????????????
+# # 2??????????????????????????????????
+# # ??????????????????
+# train_origin = result
+# train1 = train_origin[['context_timestamp', 'user_id', 'instance_id', 'item_id']]
+
+# # ?????????????
+# train1 = train1.sort_values(['user_id', 'context_timestamp'], ascending=[1, 1])
+
+# # ????????????????
+# rnColumn = train1.groupby('user_id').rank(method='min')
+# train1['rn'] = rnColumn['context_timestamp']
+# # ??-1????????????????
+# train1['rn_1'] = rnColumn['context_timestamp'] - 1
+
+# # train2?train1????????????how=?left?????????????
+# # left_on?right_on????????????????
+# # ???print(train2)??train2?????????
+# # ??user_id???????????????rn_1?rn???????
+# # ????user_id????????????????_x?_y??
+# # train2??????????????2???????????????????????????NaN
+# train2 = train1.merge(train1, how='left', left_on=['user_id', 'rn_1'], right_on=['user_id', 'rn'])
+
+# # ????????????????
+# train2['time_redc'] = train2['context_timestamp_x'] - train2['context_timestamp_y']
+
+# # ?-1??NaN??????int64
+# train2 = train2.fillna(-1).astype('int64')
+
+# # ?????
+# train2 = train2.rename(columns={'instance_id_x': 'instance_id'})
+# train2 = train2.rename(columns={'item_id_x': 'item_id'})
+# train2 = train2.rename(columns={'context_timestamp_x': 'context_timestamp'})
+
+# # ?????????????????????????
+# user_cnt_max = train2.groupby(['user_id']).max()['rn_x'].reset_index().rename(columns={'rn_x': 'user_cnt_max'})
+# train2 = pd.merge(train2,user_cnt_max,'left',on=['user_id'])
+# # ???????????????
+# train2['user_remain_cnt'] = train2['user_cnt_max'] - train2['rn_x']
+# # inplace=True??????resultframe
+# train2.drop(['user_cnt_max'],inplace=True,axis=1)
+
+# # ??
+# result = pd.merge(train_origin, train2, on=['instance_id', 'item_id', 'user_id'], how='left')
+
+
+
+# ??????
+'''
+????????????????????????????????????????
+'''
+# ??????????????????
+result['sales_div_pv'] = result.item_sales_level / (1 + result.item_pv_level)
+# na_action='ignore'????x?NaN?????
+result['sales_div_pv'] = result.sales_div_pv.map(lambda x: int(10 * x), na_action='ignore')
+
+# ??????????????????
+number_click_day = result.groupby(['day']).size().reset_index().rename(columns={0:'number_click_day'})
+result = pd.merge(result,number_click_day,'left',on=['day'])
+
+# ???????????????????
+number_click_hour = result.groupby(['hour']).size().reset_index().rename(columns={0:'number_click_hour'})
+result = pd.merge(result,number_click_hour,'left',on=['hour'])
+
+# ????????????????????????????????????????????
+# nunique???????
+temp = result.groupby('item_id')['user_age_level'].nunique().reset_index().rename(columns={'user_age_level': 'number_' + 'user_age_level' + '_query_item'})
+result = pd.merge(result, temp, 'left', on=['item_id'])
+
+# ??????????????????????
+# ???item_category_list??????????????item_category_list_1?????????????
+number_category_item = result.groupby(['item_category_list_2','item_id']).size().reset_index().rename(columns={0:'number_category_item'})
+result = pd.merge(result,number_category_item,'left',on=['item_category_list_2','item_id'])
+
+# ???????????????????????????
+number_category2 = result.groupby(['item_category_list_2']).size().reset_index().rename(columns={0:'number_category2'})
+result = pd.merge(result,number_category2,'left',on=['item_category_list_2'])
+
+# ???????????????????????????
+result['prob_item_id_category2'] = result['number_category_item']/result['number_category2']
+
+# ??number_category2?number_category_item????
+result = result.drop(['number_category2','number_category_item'],axis=1)
+
+# ??????????????????????
+ave_price_category_item = result.groupby(['item_category_list_2','item_id']).mean()['item_price_level'].reset_index().rename(columns={'item_price_level':'ave_price_category_item'})
+result = pd.merge(result,ave_price_category_item,'left',on=['item_category_list_2','item_id'])
+
+# ?????????????????????????
+ave_price_category = result.groupby(['item_category_list_2']).mean()['item_price_level'].reset_index().rename(columns={'item_price_level':'ave_price_category'})
+result = pd.merge(result,ave_price_category,'left',on=['item_category_list_2'])
+
+# ????????????????????????????
+result['prob_item_price_to_ave_category2'] = result['item_price_level']/result['ave_price_category']
+
+# ????????????????????????????
+ave_sales_price_category_item = result.groupby(['item_category_list_2','item_id','item_price_level']).mean()['item_sales_level'].reset_index().rename(columns={'item_sales_level':'ave_sales_price_category_item'})
+result = pd.merge(result,ave_sales_price_category_item,'left',on=['item_category_list_2','item_id','item_price_level'])
+
+# ???????????????????????????
+ave_sales_level_category = result.groupby(['item_category_list_2']).mean()['item_sales_level'].reset_index().rename(columns={'item_sales_level':'ave_sales_level_category'})
+result = pd.merge(result,ave_sales_level_category,'left',on=['item_category_list_2'])
+
+# ???????????????????????
+result['prob_ave_category_sales_item_sales'] = result['item_sales_level']/result['ave_sales_level_category']
+
+# ?????????????????????
+max_price_category = result.groupby(['item_category_list_2'])['item_price_level'].max().reset_index().rename(columns={'item_price_level':'max_price_category'})
+result = pd.merge(result,max_price_category,'left',on=['item_category_list_2'])
+
+# ????????????????????????????????
+result['is_max_price_category'] = result['item_price_level']/result['max_price_category']
+result['is_max_price_category'] = result['is_max_price_category'].map(lambda x: int(x), na_action='ignore')
+
+# ?????????????????????
+min_price_category = result.groupby(['item_category_list_2'])['item_price_level'].min().reset_index().rename(columns={'item_price_level':'min_price_category'})
+result = pd.merge(result,min_price_category,'left',on=['item_category_list_2'])
+
+# ????????????????????????????????????
+result['is_min_price_category'] = result['min_price_category']/result['item_price_level']
+result['is_min_price_category'] = result['is_min_price_category'].map(lambda x: int(x), na_action='ignore')
+
+# ??max_price_category?min_price_category????
+result = result.drop(['max_price_category','min_price_category'],axis=1)
+
+# ?????????????????????
+max_sales_category = result.groupby(['item_category_list_2'])['item_sales_level'].max().reset_index().rename(columns={'item_sales_level':'max_sales_category'})
+result = pd.merge(result,max_sales_category,'left',on=['item_category_list_2'])
+
+# ????????????????????????????????
+result['is_max_sales_category'] = result['item_sales_level']/result['max_sales_category']
+result['is_max_sales_category'] = result['is_max_sales_category'].map(lambda x: int(x), na_action='ignore')
+
+# ?????????????????????
+min_sales_category = result.groupby(['item_category_list_2'])['item_sales_level'].min().reset_index().rename(columns={'item_sales_level':'min_sales_category'})
+result = pd.merge(result,min_sales_category,'left',on=['item_category_list_2'])
+
+# ????????????????????????????????????
+result['is_min_sales_category'] = result['min_sales_category']/result['item_sales_level']
+result['is_min_sales_category'] = result['is_min_sales_category'].map(lambda x: int(x), na_action='ignore')
+
+# ??max_sales_category?min_sales_category????
+result = result.drop(['max_sales_category', 'min_sales_category'], axis=1)
+
+'''
+????????????????????????
+'''
+# # ??????????????????
+# # ???rn_x???????????
+# max_cnt_user_id = result.groupby(['user_id'])['rn_x'].max().reset_index().rename(columns={'rn_x':'max_cnt_user_id'})
+# result = pd.merge(result,max_cnt_user_id,'left',on=['user_id'])
+
+# # ???????????????????????????
+# result['is_max_cnt_user_id'] = result['rn_x']/result['max_cnt_user_id']
+# result['is_max_cnt_user_id'] = result['is_max_cnt_user_id'].map(lambda x: int(x), na_action='ignore')
+
+# # ???????1
+# min_cnt_user_id = result.groupby(['user_id'])['rn_x'].min().reset_index().rename(columns={'rn_x':'min_cnt_user_id'})
+# result = pd.merge(result,min_cnt_user_id,'left',on=['user_id'])
+
+# # ?????1 / ???????????
+# result['is_min_cnt_user_id'] = result['min_cnt_user_id']/result['rn_x']
+# result['is_min_cnt_user_id'] = result['is_min_cnt_user_id'].map(lambda x: int(x), na_action='ignore')
+
+# # ??max_cnt_user_id?min_cnt_user_id????
+# result = result.drop(['max_cnt_user_id', 'min_cnt_user_id'], axis=1)
+
+# ????????? - ????
+result['sales_minus_collected'] = result['item_sales_level'] - result['item_collected_level']
+
+print(result.shape)
+print(result['instance_id'].nunique())
+
+result.head()
+
+
+# ?????
+result = result.drop(
+    ['item_category_list', 'item_property_list', 'predict_category_property', 'time']
+    #,'instance_id']
+    , axis=1)
+
+# result.drop_duplicates(inplace=True)
+
+# ??
+result.to_csv('./featureData.csv', sep=' ')
+

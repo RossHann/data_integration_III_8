@@ -2,8 +2,9 @@
 <project version="4">
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/2_original.py" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/3_original.py" charset="US-ASCII" />
-    <file url="file://$PROJECT_DIR$/7_original.py" charset="US-ASCII" />
+    <file url="file://$PROJECT_DIR$/3_original.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/7_original.py" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/README.md" charset="US-ASCII" />
+    <file url="file://$PROJECT_DIR$/modified.py" charset="US-ASCII" />
   </component>
 </project>
